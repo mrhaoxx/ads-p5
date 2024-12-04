@@ -71,7 +71,6 @@ int main(int argc, char** argv) {
         {"Baseline", test<Baseline>},
         {"WithLists", test<WithLists>},
         {"WithBounds", test<WithBounds>},
-        {"WithLists2", test<WithLists2>},
     };
 
     result_t t = -1;

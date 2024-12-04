@@ -145,7 +145,15 @@ private:
                             if (next.second > z) {
                                 z = next.second;
                             }
-                        }
+
+                        } else if (next.first == largest.first) {
+                            result[index] = next;
+                            largest = next;
+                            
+                            if (next.second > z) {
+                                z = next.second;
+                            }
+                        } 
                     }
                 }
             }
@@ -174,67 +182,7 @@ private:
     }
 };
 
-class WithLists2 {
+
+class VMimproved {
 public:
-
-    static result_t knapsack(int n, int W, const std::vector<weight_t>& w, const std::vector<value_t>& p) {
-        
-        std::vector<state_t> L = { {0, 0} };
-
-        for (int j = 0; j < n; j++) {
-            std::vector<state_t> Lp;
-            for (const auto& [weight, profit] : L) {
-                if (weight + w[j] <= W) {
-                    Lp.emplace_back(weight + w[j], profit + p[j]);
-                }
-            }
-
-            L = mergelists(L, Lp);
-        }
-
-        result_t maxProfit = 0;
-        for (const auto& [weight, profit] : L) {
-            maxProfit = std::max(maxProfit, profit);
-        }
-
-        return maxProfit;
-    }
-
-    static std::vector<state_t> mergelists(const std::vector<state_t>& L1, const std::vector<state_t>& L2) {
-        std::vector<state_t> result;
-        size_t i = 0, j = 0;
-
-        state_t largest = {-1, -1};
-        size_t index = 0;
-
-        while (i < L1.size() || j < L2.size()) {
-            state_t next;
-
-            if (j >= L2.size() || (i < L1.size() && L1[i].first <= L2[j].first)) {
-                next = L1[i++];
-            } else {
-                next = L2[j++];
-            }
-
-            if (result.empty()){
-                result.push_back(next);
-                largest = next;
-            } else {
-                if (next.second > largest.second){
-                    if (next.first > largest.first){
-                        result.push_back(next);
-                        largest = next;
-                        index = result.size() - 1;
-                    } else if (next.first == largest.first){
-                        result[index] = next;
-                        largest = next;
-                    } else{
-                        std::terminate();
-                    }
-                }
-            }
-        }
-
-        return result;
-    }
 };
