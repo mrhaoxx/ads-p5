@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
         {"Baseline", test<Baseline>},
         {"WithLists", test<WithLists>},
         {"WithBounds", test<WithBounds>},
-        {"FPTAS", test<FPTAS<40,3>>},
+        // {"FPTAS", test<FPTAS<40,3>>},
         {"KASI_value", test<KASI_value>},
     };
 

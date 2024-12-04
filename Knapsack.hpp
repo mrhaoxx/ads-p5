@@ -250,40 +250,23 @@ public:
         for (int k = 0; k <= 2 * s * s + delta; k++)
         {
             // get max sum v_i for i in [pos, n) with sum weight <= k
-            std::vector<int> pos_xs_w, pos_xs_p;
-            for (int i = pos; i < n; i++)
-            {
-                pos_xs_w.push_back(w[i]);
-                pos_xs_p.push_back(p[i]);
-            }
-
-            pos_t[k] = Baseline::knapsack(pos_xs_w.size(), k, pos_xs_w, pos_xs_p);
-
-            std::cout << " " <<  pos_t[k] << " " << solve_vx_eq(pos_xs_p, pos_xs_w, k, s) << "\n";
-
-            // std::cerr << "k: " << k << " pos_t: ";
-            // for (auto& x: pos_t[k]){
-            //     std::cerr << x << " ";
-            // }
-            // std::cerr << "with sum ";
-
-            // int sum = 0;
-            // for (auto& x: pos_t[k]){
-            //     sum += w[x];
+            // std::vector<int> pos_xs_w, pos_xs_p;
+            // for (int i = pos; i < n; i++)
+            // {
+            //     pos_xs_w.push_back(w[i]);
+            //     pos_xs_p.push_back(p[i]);
             // }
 
-            // std::cerr << sum << std::endl;
+            pos_t[k] = solve_vx_le(p.data() + pos, w.data() + pos, k, s, n - pos);
 
-            // get max sum - v_i for i in [0, pos) with sum weight == k
+            // std::vector<int> neg_xs_w, neg_xs_p;
+            // for (int i = 0; i < pos; i++)
+            // {
+            //     neg_xs_w.push_back(w[i]);
+            //     neg_xs_p.push_back(-p[i]);
+            // }
 
-            std::vector<int> neg_xs_w, neg_xs_p;
-            for (int i = 0; i < pos; i++)
-            {
-                neg_xs_w.push_back(w[i]);
-                neg_xs_p.push_back(-p[i]);
-            }
-
-            neg_t[k] = solve_vx_eq(neg_xs_p, neg_xs_w, k, s);
+            neg_t[k] = solve_vx_eq(p.data(), w.data(), k, s, pos);
             
             std::cerr << "\r" << "k: " << k;
         }
@@ -323,43 +306,13 @@ private:
         return {prefix_sum, remaining_capacity, pos};
     }
 
-    static int maxTotalValueWithItems(const std::vector<int> &values, const std::vector<int> &weights, int targetWeight)
-    {
-        int n = values.size();
-        std::vector<int> dp(targetWeight + 1, std::numeric_limits<int>::min());
-        std::vector<int> prev(targetWeight + 1, -1);
-        std::vector<int> itemIndex(targetWeight + 1, -1);
-        dp[0] = 0; // 总重量为0时，总价值为0
 
-        for (int i = 0; i < n; ++i)
-        {
-            // 从大到小遍历，避免重复使用物品
-            for (int w = targetWeight; w >= weights[i]; --w)
-            {
-                if (dp[w - weights[i]] != std::numeric_limits<int>::min())
-                {
-                    int newValue = dp[w - weights[i]] + values[i];
-                    if (newValue > dp[w])
-                    {
-                        dp[w] = newValue;
-                        prev[w] = w - weights[i]; // 记录上一个重量
-                        itemIndex[w] = i;         // 记录选择的物品索引
-                    }
-                }
-            }
-        }
-
-        std::cout << "direct: " <<dp[targetWeight] << " ";
-        return dp[targetWeight];
-
-    }
-
-    static int solve_vx_le(const std::vector<int> &values, const std::vector<int> &weights, int targetWeight, int s)
+    static int solve_vx_le(const int* values, const int* weights, int targetWeight, int s, int length)
     {
         // Initialize partitions for weights from 1 to s
         std::vector<std::vector<int>> partitions(s + 1);
 
-        for (int i = 0; i < values.size(); i++)
+        for (int i = 0; i < length; i++)
         {
             partitions[weights[i]].push_back(values[i]);
         }
@@ -411,60 +364,18 @@ private:
         int max = 0;
         for(int i = 0; i <= targetWeight;i++) 
             max = std::max(max, omega_le[s][i]);
-        // std::cout << "conv: " << omega_le[s][targetWeight] << std::endl;
 
-        // Return the result (modify as per your requirements)
         return max;
     }
 
-    using element_t = std::pair<int,int>;
-
-    // static std::vector<int> solve_vx_eq(const std::vector<int> &values, const std::vector<int> &weights, int targetWeight, int s)
-    // {
-    //     std::vector<std::vector<element_t>> partitions(s+1);
-    //     for (int i = 0; i < values.size(); i++)
-    //     {
-    //         partitions[weights[i]].push_back({i, values[i]});
-    //     }
-
-    //     std::vector<std::vector<int>> omega_eq(s+1, std::vector<int>(targetWeight+1, std::numeric_limits<int>::min()));
-    //     std::vector<std::vector<int>> omega_le(s+1, std::vector<int>(targetWeight+1, std::numeric_limits<int>::min()));
-
-    //     for (int h = 0; h <= s;h++){
-    //         int cur_value = 0;
-    //         for(int i = 0; i <= partitions[h].size(); i++){
-    //             if (i * h > targetWeight)
-    //                 break;
-
-    //             omega_eq[h][i*h] = cur_value;
-
-    //             if (i == partitions[h].size())
-    //                 break;
-
-    //             cur_value += partitions[h][i].second;
-    //         }
-    //     }
-
-    //     for(int h = 1; h <= s; h++){
-    //         for(int i = 0; i < targetWeight+1; i++){
-    //            for(int j=0; j <= i;j++){
-    //                 omega_le[h][i] = std::max(omega_le[h][i], omega_eq[h-1][j] + omega_le[h-1][i-j]);
-    //            } 
-    //         }
-    //     }
-
-    //     std::cout << "conv: " << omega_le[s][targetWeight] << std::endl;
-
-    // }
-    // Define element_t as a pair of integers
-    static int solve_vx_eq(const std::vector<int> &values, const std::vector<int> &weights, int targetWeight, int s)
+    static int solve_vx_eq(const int* values, const int* weights, int targetWeight, int s, int length)
     {
         // Initialize partitions for weights from 1 to s
         std::vector<std::vector<int>> partitions(s + 1);
 
-        for (int i = values.size() - 1; i >=0; i--)
+        for (int i = length-1; i >=0; i--)
         {
-            partitions[weights[i]].push_back(values[i]);
+            partitions[weights[i]].push_back(-values[i]);
         }
 
         // Initialize omega_eq and omega_le with minimum integer values
