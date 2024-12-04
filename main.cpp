@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
     
     std::chrono::high_resolution_clock::time_point end_sort = std::chrono::high_resolution_clock::now();
 
-    std::cout << "Sorting time: " << std::chrono::duration_cast<std::chrono::microseconds>(end_sort - start_sort).count() << "us" << std::endl;
+    std::cerr << "Sorting time: " << std::chrono::duration_cast<std::chrono::microseconds>(end_sort - start_sort).count() << "us" << std::endl;
 
     // function ptr for test
     using test_fn =  std::pair<result_t, long long>(*)(int, int, const std::vector<weight_t>&, const std::vector<value_t>&);
@@ -71,9 +71,13 @@ int main(int argc, char** argv) {
         {"Baseline", test<Baseline>},
         {"WithLists", test<WithLists>},
         {"WithBounds", test<WithBounds>},
+        {"FPTAS", test<FPTAS<40,3>>},
+        {"KASI_value", test<KASI_value>},
     };
 
     result_t t = -1;
+
+    std::cout << "Test,Result,Time" << std::endl;
 
     for (const auto& [name, fn] : tests) {
         auto [result, time] = fn(n, W, w_sorted, v_sorted);
@@ -84,7 +88,7 @@ int main(int argc, char** argv) {
                 std::cerr << "Error: " << name << " result is different from the baseline" << std::endl;
             }
         }
-        std::cout << name << " result: " << result << " time: " << time << "us" << std::endl;
+        std::cout << name << "," << result << "," << time << "" << std::endl;
     }    
 
     return 0;
