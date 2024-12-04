@@ -223,7 +223,6 @@ public:
             }
         }
 
-        // Step 7: Convert back to original profit scale
         return max_profit_within_limit * scale_factor;
     }
 };
@@ -245,8 +244,8 @@ public:
 
         std::cerr << "p: " << _p << " delta: " << delta << " pos: " << pos << " max_k: " << max_k << std::endl;
 
-        std::vector<std::vector<int>> pos_t(max_k + 1);
-        std::vector<std::vector<int>> neg_t(max_k + 1);
+        std::vector<int> pos_t(max_k + 1);
+        std::vector<int> neg_t(max_k + 1);
 
         for (int k = 0; k <= 2 * s * s + delta; k++)
         {
@@ -258,7 +257,9 @@ public:
                 pos_xs_p.push_back(p[i]);
             }
 
-            pos_t[k] = knapsack_with_items(pos_xs_w.size(), k, pos_xs_w, pos_xs_p);
+            pos_t[k] = Baseline::knapsack(pos_xs_w.size(), k, pos_xs_w, pos_xs_p);
+
+            std::cout << " " <<  pos_t[k] << " " << solve_vx_eq(pos_xs_p, pos_xs_w, k, s) << "\n";
 
             // std::cerr << "k: " << k << " pos_t: ";
             // for (auto& x: pos_t[k]){
@@ -282,8 +283,8 @@ public:
                 neg_xs_p.push_back(-p[i]);
             }
 
-            neg_t[k] = maxTotalValueWithItems(neg_xs_p, neg_xs_w, k);
-
+            neg_t[k] = solve_vx_eq(neg_xs_p, neg_xs_w, k, s);
+            
             std::cerr << "\r" << "k: " << k;
         }
 
@@ -293,21 +294,7 @@ public:
 
         for (int k = 0; k <= 2 * s * s; k++)
         {
-
-            int plus = 0;
-            for (auto x : pos_t[k + delta])
-            {
-                plus += p[pos + x];
-            }
-
-            int minus = 0;
-            for (auto x : neg_t[k])
-            {
-                minus += p[x];
-            }
-
-            auto prof = _p - minus + plus;
-            max_profit = std::max(prof, max_profit);
+            max_profit = std::max(_p + neg_t[k] + pos_t[k + delta], max_profit);
         }
 
         return max_profit;
@@ -336,7 +323,7 @@ private:
         return {prefix_sum, remaining_capacity, pos};
     }
 
-    static std::vector<int> maxTotalValueWithItems(const std::vector<int> &values, const std::vector<int> &weights, int targetWeight)
+    static int maxTotalValueWithItems(const std::vector<int> &values, const std::vector<int> &weights, int targetWeight)
     {
         int n = values.size();
         std::vector<int> dp(targetWeight + 1, std::numeric_limits<int>::min());
@@ -362,64 +349,171 @@ private:
             }
         }
 
-        if (dp[targetWeight] == std::numeric_limits<int>::min())
-        {
-            // 无法组成目标重量
-            return {-1, {}};
-        }
-        else
-        {
-            // 回溯选择的物品索引
-            std::vector<int> selectedItems;
-            int w = targetWeight;
-            while (w > 0)
-            {
-                int idx = itemIndex[w];
-                if (idx == -1)
-                    break; // 正常情况下不应发生
-                selectedItems.push_back(idx);
-                w = prev[w];
-            }
-            // 将索引顺序反转，得到正确的选择顺序
-            std::reverse(selectedItems.begin(), selectedItems.end());
-            return selectedItems;
-        }
+        std::cout << "direct: " <<dp[targetWeight] << " ";
+        return dp[targetWeight];
+
     }
 
-    static std::vector<int> knapsack_with_items(int n, int W, const std::vector<weight_t> &w, const std::vector<value_t> &v)
+    static int solve_vx_le(const std::vector<int> &values, const std::vector<int> &weights, int targetWeight, int s)
     {
-        std::vector<std::vector<result_t>> dp(n + 1, std::vector<result_t>(W + 1));
-        for (int i = 0; i <= n; i++)
+        // Initialize partitions for weights from 1 to s
+        std::vector<std::vector<int>> partitions(s + 1);
+
+        for (int i = 0; i < values.size(); i++)
         {
-            for (int j = 0; j <= W; j++)
+            partitions[weights[i]].push_back(values[i]);
+        }
+
+        // Initialize omega_eq and omega_le with minimum integer values
+        std::vector<std::vector<int>> omega_eq(s + 1, std::vector<int>(targetWeight + 1, std::numeric_limits<int>::min()));
+        std::vector<std::vector<int>> omega_le(s + 1, std::vector<int>(targetWeight + 1, std::numeric_limits<int>::min()));
+
+        // Base case initialization for h = 0
+        omega_eq[0][0] = 0;
+        omega_le[0][0] = 0;
+
+        // Compute omega_eq for each weight h
+        for (int h = 0; h <= s; h++)
+        {
+            int cur_value = 0;
+            int max_items = partitions[h].size();
+            for (int i = 0; i <= max_items; i++)
             {
-                if (i == 0 || j == 0)
+                int weight = i * h;
+                if (weight > targetWeight)
+                    break;
+
+                omega_eq[h][weight] = cur_value;
+
+                if (i == max_items)
+                    break;
+
+                cur_value += partitions[h][i];
+            }
+        }
+
+        // Compute omega_le using dynamic programming
+        for (int h = 1; h <= s; h++)
+        {
+            for (int i = 0; i <= targetWeight; i++)
+            {
+                for (int j = 0; j <= i; j++)
                 {
-                    dp[i][j] = 0;
-                }
-                else if (w[i - 1] <= j)
-                {
-                    dp[i][j] = std::max(v[i - 1] + dp[i - 1][j - w[i - 1]], dp[i - 1][j]);
-                }
-                else
-                {
-                    dp[i][j] = dp[i - 1][j];
+                    if (omega_eq[h-1][j] != std::numeric_limits<int>::min() && omega_le[h - 1][i - j] != std::numeric_limits<int>::min())
+                    {
+                        omega_le[h][i] = std::max(omega_eq[h-1][j] + omega_le[h - 1][i - j], omega_le[h][i]);
+                    }
                 }
             }
         }
 
-        std::vector<int> items;
-        int i = n, j = W;
-        while (i > 0 && j > 0)
+
+        int max = 0;
+        for(int i = 0; i <= targetWeight;i++) 
+            max = std::max(max, omega_le[s][i]);
+        // std::cout << "conv: " << omega_le[s][targetWeight] << std::endl;
+
+        // Return the result (modify as per your requirements)
+        return max;
+    }
+
+    using element_t = std::pair<int,int>;
+
+    // static std::vector<int> solve_vx_eq(const std::vector<int> &values, const std::vector<int> &weights, int targetWeight, int s)
+    // {
+    //     std::vector<std::vector<element_t>> partitions(s+1);
+    //     for (int i = 0; i < values.size(); i++)
+    //     {
+    //         partitions[weights[i]].push_back({i, values[i]});
+    //     }
+
+    //     std::vector<std::vector<int>> omega_eq(s+1, std::vector<int>(targetWeight+1, std::numeric_limits<int>::min()));
+    //     std::vector<std::vector<int>> omega_le(s+1, std::vector<int>(targetWeight+1, std::numeric_limits<int>::min()));
+
+    //     for (int h = 0; h <= s;h++){
+    //         int cur_value = 0;
+    //         for(int i = 0; i <= partitions[h].size(); i++){
+    //             if (i * h > targetWeight)
+    //                 break;
+
+    //             omega_eq[h][i*h] = cur_value;
+
+    //             if (i == partitions[h].size())
+    //                 break;
+
+    //             cur_value += partitions[h][i].second;
+    //         }
+    //     }
+
+    //     for(int h = 1; h <= s; h++){
+    //         for(int i = 0; i < targetWeight+1; i++){
+    //            for(int j=0; j <= i;j++){
+    //                 omega_le[h][i] = std::max(omega_le[h][i], omega_eq[h-1][j] + omega_le[h-1][i-j]);
+    //            } 
+    //         }
+    //     }
+
+    //     std::cout << "conv: " << omega_le[s][targetWeight] << std::endl;
+
+    // }
+    // Define element_t as a pair of integers
+    static int solve_vx_eq(const std::vector<int> &values, const std::vector<int> &weights, int targetWeight, int s)
+    {
+        // Initialize partitions for weights from 1 to s
+        std::vector<std::vector<int>> partitions(s + 1);
+
+        for (int i = values.size() - 1; i >=0; i--)
         {
-            if (dp[i][j] != dp[i - 1][j])
-            {
-                items.push_back(i - 1);
-                j -= w[i - 1];
-            }
-            i--;
+            partitions[weights[i]].push_back(values[i]);
         }
 
-        return items;
+        // Initialize omega_eq and omega_le with minimum integer values
+        std::vector<std::vector<int>> omega_eq(s + 1, std::vector<int>(targetWeight + 1, std::numeric_limits<int>::min()));
+        std::vector<std::vector<int>> omega_le(s + 1, std::vector<int>(targetWeight + 1, std::numeric_limits<int>::min()));
+
+        // Base case initialization for h = 0
+        omega_eq[0][0] = 0;
+        omega_le[0][0] = 0;
+
+        // Compute omega_eq for each weight h
+        for (int h = 0; h <= s; h++)
+        {
+            int cur_value = 0;
+            int max_items = partitions[h].size();
+            for (int i = 0; i <= max_items; i++)
+            {
+                int weight = i * h;
+                if (weight > targetWeight)
+                    break;
+
+                omega_eq[h][weight] = cur_value;
+
+                if (i == max_items)
+                    break;
+
+                cur_value += partitions[h][i];
+            }
+        }
+
+        // Compute omega_le using dynamic programming
+        for (int h = 1; h <= s; h++)
+        {
+            for (int i = 0; i <= targetWeight; i++)
+            {
+                for (int j = 0; j <= i; j++)
+                {
+                    if (omega_eq[h-1][j] != std::numeric_limits<int>::min() && omega_le[h - 1][i - j] != std::numeric_limits<int>::min())
+                    {
+                        omega_le[h][i] = std::max(omega_eq[h-1][j] + omega_le[h - 1][i - j], omega_le[h][i]);
+                    }
+                }
+            }
+        }
+
+
+        // std::cout << "conv: " << omega_le[s][targetWeight] << std::endl;
+
+        // Return the result (modify as per your requirements)
+        return omega_le[s][targetWeight];
     }
 };
