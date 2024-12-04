@@ -137,14 +137,14 @@ private:
                     largest = next;
                 } else {
                     if (next.second > largest.second){
+                        if (next.first > largest.first){
+                            result.push_back(next);
+                            largest = next;
+                            index = result.size() - 1;
 
-                        result.push_back(next);
-                        index = result.size() - 1;
-
-                        largest = next;
-                        
-                        if (largest.second > z){
-                            z = largest.second;
+                            if (next.second > z) {
+                                z = next.second;
+                            }
                         }
                     }
                 }
