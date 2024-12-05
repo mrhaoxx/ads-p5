@@ -237,12 +237,12 @@ public:
         {
             s = std::max(s, w[i]);
         }
-        std::cerr << "s: " << s << std::endl;
+        // std::cerr << "s: " << s << std::endl;
 
         const auto [_p, delta, pos] = get_max_prefix_sum(0, n, W, w, p);
         const auto max_k = 2 * s * s + delta;
 
-        std::cerr << "p: " << _p << " delta: " << delta << " pos: " << pos << " max_k: " << max_k << std::endl;
+        // std::cerr << "p: " << _p << " delta: " << delta << " pos: " << pos << " max_k: " << max_k << std::endl;
 
         std::vector<int> pos_t(max_k + 1);
         std::vector<int> neg_t(max_k + 1);
@@ -268,10 +268,10 @@ public:
 
             neg_t[k] = solve_vx_eq(p.data(), w.data(), k, s, pos);
             
-            std::cerr << "\r" << "k: " << k;
+            // std::cerr << "\r" << "k: " << k;
         }
 
-        std::cerr << std::endl;
+        // std::cerr << std::endl;
 
         result_t max_profit = 0;
 
@@ -309,7 +309,6 @@ private:
 
     static int solve_vx_le(const int* values, const int* weights, int targetWeight, int s, int length)
     {
-        // Initialize partitions for weights from 1 to s
         std::vector<std::vector<int>> partitions(s + 1);
 
         for (int i = 0; i < length; i++)
@@ -317,15 +316,12 @@ private:
             partitions[weights[i]].push_back(values[i]);
         }
 
-        // Initialize omega_eq and omega_le with minimum integer values
         std::vector<std::vector<int>> omega_eq(s + 1, std::vector<int>(targetWeight + 1, std::numeric_limits<int>::min()));
         std::vector<std::vector<int>> omega_le(s + 1, std::vector<int>(targetWeight + 1, std::numeric_limits<int>::min()));
 
-        // Base case initialization for h = 0
         omega_eq[0][0] = 0;
         omega_le[0][0] = 0;
 
-        // Compute omega_eq for each weight h
         for (int h = 0; h <= s; h++)
         {
             int cur_value = 0;
@@ -345,7 +341,6 @@ private:
             }
         }
 
-        // Compute omega_le using dynamic programming
         for (int h = 1; h <= s; h++)
         {
             for (int i = 0; i <= targetWeight; i++)
@@ -405,7 +400,7 @@ private:
             }
         }
 
-        // Compute omega_le using dynamic programming
+        // Compute omega_le using convolution 
         for (int h = 1; h <= s; h++)
         {
             for (int i = 0; i <= targetWeight; i++)
@@ -423,7 +418,6 @@ private:
 
         // std::cout << "conv: " << omega_le[s][targetWeight] << std::endl;
 
-        // Return the result (modify as per your requirements)
         return omega_le[s][targetWeight];
     }
 };
